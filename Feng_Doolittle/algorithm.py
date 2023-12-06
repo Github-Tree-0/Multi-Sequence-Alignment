@@ -8,8 +8,13 @@ class MSA:
         self.alphabet = alphabet
         # the score matrix is a numpy matrix
         # the rows and columns are in the same order as the alphabet
-        self.score_matrix = score_matrix
+
         assert '-' in self.alphabet
+        assert '#' in self.alphabet
+        ind = self.alphabet.index('#')
+        self.score_matrix = score_matrix
+        self.score_matrix[ind, :] = 0
+        self.score_matrix[:, ind] = 0
         self.alphabet2index = {c: i for i, c in enumerate(self.alphabet)}
         self.f = f
         
@@ -61,13 +66,13 @@ class MSA:
                     for indx in range(len(algn1)):
                         alignment[indx] = algn1[indx][i-1] + alignment[indx]
                     for indx in range(len(algn1), len(algn1)+len(algn2)):
-                        alignment[indx] = '-' + alignment[indx]
+                        alignment[indx] = '#' + alignment[indx]
                     i -= 1
                 elif backtrace[i, j] == 1:
                     if cal_gaps:
                         num_gaps += 1
                     for indx in range(len(algn1)):
-                        alignment[indx] = '-' + alignment[indx]
+                        alignment[indx] = '#' + alignment[indx]
                     for indx in range(len(algn1), len(algn1)+len(algn2)):
                         alignment[indx] = algn2[indx-len(algn1)][j-1] + alignment[indx]
                     j -= 1
@@ -109,8 +114,49 @@ class MSA:
         return D
                 
 
-    def compute_guide_tree(self, sequences):
-        pass
+    def build_guide_tree(self, D):
+        # UPGMA algorithm
+        score_matrix = D.copy()
+        guide_tree = list(range(D.shape[0]))
+        while len(guide_tree) > 2:
+            # find the minimum value in the upper triangle of the score matrix
+            i, j = np.triu_indices(score_matrix.shape[0], k=1)
+            min_index = np.argmin(score_matrix[i, j])
+            i, j = i[min_index], j[min_index]
+            # Merge the two clusters
+            assert i < j
+            new_cluster = [guide_tree[i], guide_tree[j]]
+            # remove the i-th and j-th clusters
+            del guide_tree[j]
+            del guide_tree[i]
+            guide_tree.append(new_cluster)
+            # update the score matrix
+            new_row = (score_matrix[i] + score_matrix[j]) / 2
+            new_row = np.delete(new_row, [i, j])
 
-    def compute_msa(self, sqeuences):
-        pass
+            score_matrix = np.delete(score_matrix, j, axis=0)
+            score_matrix = np.delete(score_matrix, j, axis=1)
+            score_matrix = np.delete(score_matrix, i, axis=0)
+            score_matrix = np.delete(score_matrix, i, axis=1)
+            score_matrix = np.vstack((score_matrix, new_row))
+            new_col = np.append(new_row, 0)
+            score_matrix = np.column_stack((score_matrix, new_col))
+
+        return guide_tree
+    
+    def msa_from_guide_tree(self, guide_tree, sequences):
+        if type(guide_tree) == int:
+            return [sequences[guide_tree]]
+        assert len(guide_tree) == 2
+        left = self.msa_from_guide_tree(guide_tree[0], sequences)
+        right = self.msa_from_guide_tree(guide_tree[1], sequences)
+        alignment, _ = self.align_profile(left, right, backtrace_flag=True)
+        
+        return alignment
+
+    def compute_msa(self, sequences):
+        D = self.compute_D(sequences)
+        guide_tree = self.build_guide_tree(D)
+        alignment = self.msa_from_guide_tree(guide_tree, sequences)
+
+        return alignment
