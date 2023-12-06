@@ -109,8 +109,38 @@ class MSA:
         return D
                 
 
-    def compute_guide_tree(self, sequences):
-        pass
+    def build_guide_tree(self, D):
+        # UPGMA algorithm
+        score_matrix = D.copy()
+        guide_tree = list(range(D.shape[0]))
+        while len(guide_tree) > 2:
+            # find the minimum value in the upper triangle of the score matrix
+            i, j = np.triu_indices(score_matrix.shape[0], k=1)
+            min_index = np.argmin(score_matrix[i, j])
+            i, j = i[min_index], j[min_index]
+            # Merge the two clusters
+            assert i < j
+            new_cluster = [guide_tree[i], guide_tree[j]]
+            # remove the i-th and j-th clusters
+            del guide_tree[j]
+            del guide_tree[i]
+            guide_tree.append(new_cluster)
+            # update the score matrix
+            new_row = (score_matrix[i] + score_matrix[j]) / 2
+            new_row = np.delete(new_row, [i, j])
 
-    def compute_msa(self, sqeuences):
+            score_matrix = np.delete(score_matrix, j, axis=0)
+            score_matrix = np.delete(score_matrix, j, axis=1)
+            score_matrix = np.delete(score_matrix, i, axis=0)
+            score_matrix = np.delete(score_matrix, i, axis=1)
+            score_matrix = np.vstack((score_matrix, new_row))
+            new_col = np.append(new_row, 0)
+            score_matrix = np.column_stack((score_matrix, new_col))
+
+        return guide_tree
+
+    def compute_msa(self, sequences):
+        D = self.compute_D(sequences)
+        guide_tree = self.build_guide_tree(D)
+
         pass
