@@ -8,8 +8,13 @@ class MSA:
         self.alphabet = alphabet
         # the score matrix is a numpy matrix
         # the rows and columns are in the same order as the alphabet
-        self.score_matrix = score_matrix
+
         assert '-' in self.alphabet
+        assert '#' in self.alphabet
+        ind = self.alphabet.index('#')
+        self.score_matrix = score_matrix
+        self.score_matrix[ind, :] = 0
+        self.score_matrix[:, ind] = 0
         self.alphabet2index = {c: i for i, c in enumerate(self.alphabet)}
         self.f = f
         
@@ -61,13 +66,13 @@ class MSA:
                     for indx in range(len(algn1)):
                         alignment[indx] = algn1[indx][i-1] + alignment[indx]
                     for indx in range(len(algn1), len(algn1)+len(algn2)):
-                        alignment[indx] = '-' + alignment[indx]
+                        alignment[indx] = '#' + alignment[indx]
                     i -= 1
                 elif backtrace[i, j] == 1:
                     if cal_gaps:
                         num_gaps += 1
                     for indx in range(len(algn1)):
-                        alignment[indx] = '-' + alignment[indx]
+                        alignment[indx] = '#' + alignment[indx]
                     for indx in range(len(algn1), len(algn1)+len(algn2)):
                         alignment[indx] = algn2[indx-len(algn1)][j-1] + alignment[indx]
                     j -= 1
@@ -138,9 +143,20 @@ class MSA:
             score_matrix = np.column_stack((score_matrix, new_col))
 
         return guide_tree
+    
+    def msa_from_guide_tree(self, guide_tree, sequences):
+        if type(guide_tree) == int:
+            return [sequences[guide_tree]]
+        assert len(guide_tree) == 2
+        left = self.msa_from_guide_tree(guide_tree[0], sequences)
+        right = self.msa_from_guide_tree(guide_tree[1], sequences)
+        alignment, _ = self.align_profile(left, right, backtrace_flag=True)
+        
+        return alignment
 
     def compute_msa(self, sequences):
         D = self.compute_D(sequences)
         guide_tree = self.build_guide_tree(D)
+        alignment = self.msa_from_guide_tree(guide_tree, sequences)
 
-        pass
+        return alignment
