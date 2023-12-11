@@ -108,7 +108,7 @@ class MSA:
                 score_rand = np.sum([self.score_matrix[self.alphabet2index[x]][self.alphabet2index[y]] * counter_a[x] * counter_b[y] 
                                      for x in self.alphabet for y in self.alphabet]) / L - num_gaps
                 
-                D[i, j] = -np.log((score - score_rand) / (score_max - score_rand) * self.f)
+                D[i, j] = -np.log(np.clip((score - score_rand) / (score_max - score_rand) * self.f, 1e-10, None))
                 D[j, i] = D[i, j]
 
         return D
