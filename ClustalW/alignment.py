@@ -8,7 +8,7 @@ import pandas as pd
 from utils import merge
 
 
-plt.style.use('seaborn')
+# plt.style.use('seaborn')
 
 
 class Alignment(object):

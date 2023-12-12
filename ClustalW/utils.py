@@ -1,5 +1,6 @@
 #utils.py
-import collections
+# import collections
+import collections.abc as collections
 
 def iflatten(iterable):
     """
