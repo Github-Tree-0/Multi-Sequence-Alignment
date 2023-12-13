@@ -10,10 +10,10 @@ from align import multi_sequence_alignment
 #5. a pdf (msa.pdf) is also generated
 
 if __name__ == '__main__':
-    sequences = ['GARFIELD THE LAST FAT CAT'.split(),
-                 'GARFIELD THE FAST CAT'.split(),
-                 'GARFIELD THE VERY FAST CAT'.split(),
-                 'THE FAT CAT'.split()]
+    sequences = ['GARFIELD-THE-LAST-FAT-CAT',
+                 'GARFIELD-THE-FAST-CAT',
+                 'GARFIELD-THE-VERY-FAST-CAT',
+                 'THE-FAT-CAT']
     print(sequences)
     alignment = multi_sequence_alignment(sequences)
     print(alignment)
